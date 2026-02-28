@@ -51,11 +51,6 @@ src/
 └── navigation/     # React Navigation setup
 ```
 
-## Related Repos
-
-- Backend API: [my-pet-bot](https://github.com/chiku0210/my-pet-bot)
-- Web Dashboard: [orion-frontend](https://github.com/chiku0210/orion-frontend)
-
 ## License
 
 MIT — Built by [Nielless Acharya](https://github.com/chiku0210)
