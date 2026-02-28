@@ -1,23 +1,24 @@
 # ORION Mobile
 
-**ORION AI Voice Assistant** — React Native Android app with wake word detection, voice/text chat, and LLM-powered responses.
+**Android voice assistant** with wake word detection, voice/text chat, and AI-powered responses. Built for portfolio showcase and real-world deployment.
 
 ## Stack
 
-- **Frontend**: React Native 0.76+
+- **Frontend**: React Native 0.76+ (Android only)
 - **Wake Word**: Picovoice Porcupine ("Hey ORION")
-- **Voice**: react-native-tts (Indian English, male voice)
+- **Voice**: react-native-tts (Indian English, male voice 0.9x)
 - **State**: Redux Toolkit + RTK Query
-- **Backend**: Node/Express API ([orion-backend](https://github.com/chiku0210/my-pet-bot))
-- **APIs**: Groq (Whisper for STT, Llama3 70B for chat)
+- **Backend**: Node/Express + PostgreSQL ([my-pet-bot](https://github.com/chiku0210/my-pet-bot))
+- **APIs**: Groq (Whisper STT, Llama3 70B)
 
 ## Features
 
-- Wake word activation in background
+- Background wake word activation
 - Voice + text chat modes
-- Local message persistence (AsyncStorage)
-- Clean UI with chat history
-- Auth (JWT) + user settings
+- Local message caching (AsyncStorage)
+- Clean chat UI with history
+- JWT authentication
+- User settings persistence
 
 ## Setup
 
@@ -25,14 +26,8 @@
 # Install dependencies
 npm install
 
-# iOS pods (macOS only)
-cd ios && pod install && cd ..
-
-# Run Android
+# Run on Android device/emulator
 npm run android
-
-# Run iOS
-npm run ios
 ```
 
 ## Environment
@@ -48,18 +43,18 @@ PICOVOICE_ACCESS_KEY=your_key_here
 
 ```
 src/
-├── components/     # UI components
-├── screens/        # App screens
-├── store/          # Redux slices + RTK Query
-├── services/       # API client, wake word, TTS
-├── utils/          # Helpers
-└── navigation/     # React Navigation
+├── components/     # Reusable UI components
+├── screens/        # App screens (Chat, Settings, History)
+├── store/          # Redux slices + RTK Query API
+├── services/       # Wake word, TTS, API client
+├── utils/          # Helpers and constants
+└── navigation/     # React Navigation setup
 ```
 
 ## Related Repos
 
-- Backend: [my-pet-bot](https://github.com/chiku0210/my-pet-bot)
-- Frontend Web: [orion-frontend](https://github.com/chiku0210/orion-frontend)
+- Backend API: [my-pet-bot](https://github.com/chiku0210/my-pet-bot)
+- Web Dashboard: [orion-frontend](https://github.com/chiku0210/orion-frontend)
 
 ## License
 
