@@ -1,117 +1,111 @@
 /**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
+ * ORION Mobile App
+ * A React Native chat application
+ * 
  * @format
  */
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StatusBar, View, ActivityIndicator, StyleSheet } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+// Screens
+import { LoginScreen, RegisterScreen, ChatScreen } from './src/screens';
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+// Store
+import { useAuthStore } from './src/store';
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
+// Constants
+import { COLORS } from './src/utils';
+
+// Type definitions for navigation
+export type RootStackParamList = {
+  Login: undefined;
+  Register: undefined;
+  Chat: undefined;
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
+
+// Loading screen component
+const LoadingScreen: React.FC = () => (
+  <View style={styles.loadingContainer}>
+    <ActivityIndicator size="large" color={COLORS.primary} />
+  </View>
+);
 
 function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  const [isReady, setIsReady] = useState(false);
+  const checkAuth = useAuthStore((state) => state.checkAuth);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        await checkAuth();
+      } catch (error) {
+        console.error('Error initializing app:', error);
+      } finally {
+        setIsReady(true);
+      }
+    };
+
+    initializeApp();
+  }, [checkAuth]);
+
+  if (!isReady) {
+    return <LoadingScreen />;
+  }
+
+  const initialRoute = isAuthenticated ? 'Chat' : 'Login';
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
+    <NavigationContainer>
+      <StatusBar 
+        barStyle="dark-content" 
+        backgroundColor={COLORS.background} 
       />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      <Stack.Navigator
+        initialRouteName={initialRoute}
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+          contentStyle: { backgroundColor: COLORS.background },
+        }}
+      >
+        <Stack.Screen 
+          name="Login" 
+          component={LoginScreen}
+          options={{
+            animation: 'fade',
+          }}
+        />
+        <Stack.Screen 
+          name="Register" 
+          component={RegisterScreen}
+          options={{
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen 
+          name="Chat" 
+          component={ChatScreen}
+          options={{
+            animation: 'fade',
+          }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
   },
 });
 
