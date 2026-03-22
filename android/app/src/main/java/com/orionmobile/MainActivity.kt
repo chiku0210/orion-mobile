@@ -1,4 +1,4 @@
-package com.orionMobile
+package com.orionmobile
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

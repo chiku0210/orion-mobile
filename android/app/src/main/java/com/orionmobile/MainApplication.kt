@@ -1,4 +1,4 @@
-package com.orionMobile
+package com.orionmobile
 
 import android.app.Application
 import com.facebook.react.PackageList
