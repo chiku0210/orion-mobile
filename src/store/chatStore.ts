@@ -7,7 +7,10 @@ import { authStorage } from '../services/storage';
 interface ChatStore extends ChatState {
   // Actions
   fetchMessages: (page?: number, limit?: number) => Promise<void>;
-  sendMessage: (content: string, messageType?: 'text' | 'voice') => Promise<void>;
+  sendMessage: (
+    content: string,
+    messageType?: 'text' | 'voice'
+  ) => Promise<void>;
   addMessage: (message: Message) => void;
   deleteMessage: (messageId: number) => Promise<void>;
   clearMessages: () => void;
@@ -25,7 +28,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   // Fetch messages from API
   fetchMessages: async (page: number = 1, limit: number = 50) => {
     const token = await authStorage.getToken();
-    
+
     if (!token) {
       set({ error: 'Not authenticated' });
       return;
@@ -38,15 +41,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
       if (response.success && response.data) {
         const { messages } = response.data;
-        
-        // Save to local storage
+
         await messagesStorage.setMessages(messages);
-        
-        set({
-          messages,
-          isLoading: false,
-          error: null,
-        });
+
+        set({ messages, isLoading: false, error: null });
       } else {
         set({
           isLoading: false,
@@ -62,34 +60,36 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   // Send a new message
-  sendMessage: async (content: string, messageType: 'text' | 'voice' = 'text') => {
+  sendMessage: async (
+    content: string,
+    messageType: 'text' | 'voice' = 'text'
+  ) => {
     const token = await authStorage.getToken();
-    
+
     if (!token) {
-      set({ error: 'Not authenticated' });
+      set({ error: 'Not authenticated', isLoading: false });
       return;
     }
 
     set({ isLoading: true, error: null });
 
     try {
-      const response = await messagesApi.sendMessage(token, content, messageType);
+      const response = await messagesApi.sendMessage(
+        token,
+        content,
+        messageType
+      );
 
       if (response.success && response.data) {
-        const newMessage = response.data;
-        
-        // Add to local messages
+        // Backend returns { message: {...}, metadata: {...} }
+        const newMessage = (response.data as any).message as Message;
+
         const currentMessages = get().messages;
         const updatedMessages = [...currentMessages, newMessage];
-        
-        // Save to local storage
+
         await messagesStorage.setMessages(updatedMessages);
-        
-        set({
-          messages: updatedMessages,
-          isLoading: false,
-          error: null,
-        });
+
+        set({ messages: updatedMessages, isLoading: false, error: null });
       } else {
         set({
           isLoading: false,
@@ -108,40 +108,35 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   addMessage: (message: Message) => {
     const currentMessages = get().messages;
     const updatedMessages = [...currentMessages, message];
-    
+
     set({ messages: updatedMessages });
-    
-    // Save to local storage
+
     messagesStorage.setMessages(updatedMessages).catch(console.error);
   },
 
-  // Delete a message
+  // Delete a message — backend expects array of IDs
   deleteMessage: async (messageId: number) => {
     const token = await authStorage.getToken();
-    
+
     if (!token) {
       set({ error: 'Not authenticated' });
       return;
     }
 
     try {
-      const response = await messagesApi.deleteMessage(token, messageId);
+      const response = await messagesApi.deleteMessages(token, [messageId]);
 
       if (response.success) {
         const currentMessages = get().messages;
-        const updatedMessages = currentMessages.filter((msg) => msg.id !== messageId);
-        
-        // Save to local storage
+        const updatedMessages = currentMessages.filter(
+          msg => msg.id !== messageId
+        );
+
         await messagesStorage.setMessages(updatedMessages);
-        
-        set({
-          messages: updatedMessages,
-          error: null,
-        });
+
+        set({ messages: updatedMessages, error: null });
       } else {
-        set({
-          error: response.error || 'Failed to delete message',
-        });
+        set({ error: response.error || 'Failed to delete message' });
       }
     } catch (error: any) {
       set({
@@ -156,15 +151,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     messagesStorage.clearMessages().catch(console.error);
   },
 
-  // Set loading state
-  setLoading: (loading: boolean) => {
-    set({ isLoading: loading });
-  },
+  setLoading: (loading: boolean) => set({ isLoading: loading }),
 
-  // Set error
-  setError: (error: string | null) => {
-    set({ error });
-  },
+  setError: (error: string | null) => set({ error }),
 
   // Load messages from local storage
   loadLocalMessages: async () => {

@@ -8,8 +8,10 @@ export interface Message {
   id: number;
   role: 'user' | 'assistant';
   content: string;
-  messageType: 'text' | 'voice';
-  createdAt: string;
+  messageType?: 'text' | 'voice';    // frontend-created messages
+  message_type?: 'text' | 'voice';   // backend responses (snake_case)
+  createdAt?: string;                 // frontend
+  created_at?: string;                // backend
 }
 
 export interface AuthState {

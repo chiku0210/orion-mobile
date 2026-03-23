@@ -1,5 +1,7 @@
 // API Configuration
-export const BASE_URL = 'https://api.orion.example.com/v1';
+// Android emulator → 10.0.2.2, physical device → your LAN IP e.g. 192.168.1.x
+export const BASE_URL = 'http://10.0.2.2:3000';
+
 export const API_TIMEOUT = 30000; // 30 seconds
 
 // Storage Keys

@@ -15,9 +15,21 @@ interface AuthResponse {
 
 interface MessagesResponse {
   messages: Message[];
-  total: number;
-  page: number;
-  limit: number;
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
+}
+
+interface SendMessageResponse {
+  message: Message;
+  metadata: {
+    tokensUsed: number;
+    processingTime: number;
+    model: string;
+  };
 }
 
 // Helper function for making API requests
@@ -45,32 +57,23 @@ async function fetchApi<T>(
     if (!response.ok) {
       return {
         success: false,
-        error: data.message || 'An error occurred',
+        error: data.error || 'An error occurred',  // backend returns { error: "..." }
       };
     }
 
-    return {
-      success: true,
-      data,
-    };
+    return { success: true, data };
   } catch (error: any) {
     if (error.name === 'AbortError') {
-      return {
-        success: false,
-        error: 'Request timed out',
-      };
+      return { success: false, error: 'Request timed out' };
     }
-    return {
-      success: false,
-      error: error.message || 'Network error',
-    };
+    return { success: false, error: error.message || 'Network error' };
   }
 }
 
-// Auth API
+// Auth API — paths: /api/auth/*
 export const authApi = {
   login: async (email: string, password: string): Promise<ApiResponse<AuthResponse>> => {
-    return fetchApi<AuthResponse>('/auth/login', {
+    return fetchApi<AuthResponse>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -81,44 +84,30 @@ export const authApi = {
     email: string,
     password: string
   ): Promise<ApiResponse<AuthResponse>> => {
-    return fetchApi<AuthResponse>('/auth/register', {
+    return fetchApi<AuthResponse>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ username, email, password }),
     });
   },
 
-  logout: async (token: string): Promise<ApiResponse<null>> => {
-    return fetchApi<null>('/auth/logout', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  },
-
-  refreshToken: async (token: string): Promise<ApiResponse<{ token: string }>> => {
-    return fetchApi<{ token: string }>('/auth/refresh', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+  logout: async (_token: string): Promise<ApiResponse<null>> => {
+    // No backend logout endpoint — just clear local state
+    return { success: true };
   },
 };
 
-// Messages API
+// Messages API — paths: /api/chat/*
 export const messagesApi = {
   getMessages: async (
     token: string,
     page: number = 1,
     limit: number = 50
   ): Promise<ApiResponse<MessagesResponse>> => {
+    const offset = (page - 1) * limit;
     return fetchApi<MessagesResponse>(
-      `/messages?page=${page}&limit=${limit}`,
+      `/api/chat/history?limit=${limit}&offset=${offset}`,
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       }
     );
   },
@@ -127,63 +116,32 @@ export const messagesApi = {
     token: string,
     content: string,
     messageType: 'text' | 'voice' = 'text'
-  ): Promise<ApiResponse<Message>> => {
-    return fetchApi<Message>('/messages', {
+  ): Promise<ApiResponse<SendMessageResponse>> => {
+    return fetchApi<SendMessageResponse>('/api/chat/send', {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ content, messageType }),
+      headers: { Authorization: `Bearer ${token}` },
+      // Backend expects { text, type } not { content, messageType }
+      body: JSON.stringify({ text: content, type: messageType }),
     });
   },
 
-  deleteMessage: async (
+  deleteMessages: async (
     token: string,
-    messageId: number
+    messageIds: number[]
   ): Promise<ApiResponse<null>> => {
-    return fetchApi<null>(`/messages/${messageId}`, {
+    return fetchApi<null>('/api/chat/delete', {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ messageIds }),
     });
   },
 };
 
-// User API
+// User API — not implemented in backend yet, placeholder
 export const userApi = {
   getProfile: async (token: string): Promise<ApiResponse<User>> => {
-    return fetchApi<User>('/users/profile', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  },
-
-  updateProfile: async (
-    token: string,
-    data: Partial<User>
-  ): Promise<ApiResponse<User>> => {
-    return fetchApi<User>('/users/profile', {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(data),
-    });
-  },
-
-  updatePassword: async (
-    token: string,
-    currentPassword: string,
-    newPassword: string
-  ): Promise<ApiResponse<null>> => {
-    return fetchApi<null>('/users/password', {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ currentPassword, newPassword }),
+    return fetchApi<User>('/api/user/profile', {
+      headers: { Authorization: `Bearer ${token}` },
     });
   },
 };
