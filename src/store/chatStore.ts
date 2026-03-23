@@ -5,7 +5,6 @@ import { messagesStorage } from '../services/storage';
 import { authStorage } from '../services/storage';
 
 interface ChatStore extends ChatState {
-  // Actions
   fetchMessages: (page?: number, limit?: number) => Promise<void>;
   sendMessage: (
     content: string,
@@ -20,17 +19,15 @@ interface ChatStore extends ChatState {
 }
 
 export const useChatStore = create<ChatStore>((set, get) => ({
-  // Initial state
   messages: [],
   isLoading: false,
   error: null,
 
-  // Fetch messages from API
   fetchMessages: async (page: number = 1, limit: number = 50) => {
     const token = await authStorage.getToken();
 
     if (!token) {
-      set({ error: 'Not authenticated' });
+      set({ isLoading: false, error: null }); // not authenticated yet — silent, don't block UI
       return;
     }
 
@@ -40,26 +37,19 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       const response = await messagesApi.getMessages(token, page, limit);
 
       if (response.success && response.data) {
-        const { messages } = response.data;
-
+        const messages = (response.data as any).messages as Message[];
         await messagesStorage.setMessages(messages);
-
         set({ messages, isLoading: false, error: null });
       } else {
-        set({
-          isLoading: false,
-          error: response.error || 'Failed to fetch messages',
-        });
+        // Don't block UI on fetch failure — just clear loading
+        set({ isLoading: false, error: null });
       }
     } catch (error: any) {
-      set({
-        isLoading: false,
-        error: error.message || 'An error occurred while fetching messages',
-      });
+      set({ isLoading: false, error: null }); // silent fail — don't block the input bar
+      console.error('[ChatStore] fetchMessages error:', error.message);
     }
   },
 
-  // Send a new message
   sendMessage: async (
     content: string,
     messageType: 'text' | 'voice' = 'text'
@@ -71,7 +61,21 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       return;
     }
 
-    set({ isLoading: true, error: null });
+    // Add user message immediately — don't wait for API
+    const optimisticUserMsg: Message = {
+      id: Date.now(), // temp ID
+      role: 'user',
+      content,
+      messageType,
+      createdAt: new Date().toISOString(),
+    };
+
+    const currentMessages = get().messages;
+    set({
+      messages: [...currentMessages, optimisticUserMsg],
+      isLoading: true,
+      error: null,
+    });
 
     try {
       const response = await messagesApi.sendMessage(
@@ -81,40 +85,42 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       );
 
       if (response.success && response.data) {
-        // Backend returns { message: {...}, metadata: {...} }
-        const newMessage = (response.data as any).message as Message;
+        const assistantMessage = (response.data as any).message as Message;
 
-        const currentMessages = get().messages;
-        const updatedMessages = [...currentMessages, newMessage];
-
-        await messagesStorage.setMessages(updatedMessages);
-
-        set({ messages: updatedMessages, isLoading: false, error: null });
+        // Replace optimistic list + append real assistant response
+        const withAssistant = [
+          ...currentMessages,
+          optimisticUserMsg,
+          assistantMessage,
+        ];
+        await messagesStorage.setMessages(withAssistant);
+        set({ messages: withAssistant, isLoading: false, error: null });
       } else {
+        // Rollback optimistic message on failure
         set({
+          messages: currentMessages,
           isLoading: false,
           error: response.error || 'Failed to send message',
         });
       }
     } catch (error: any) {
+      // Rollback on network error
       set({
+        messages: currentMessages,
         isLoading: false,
-        error: error.message || 'An error occurred while sending message',
+        error: error.message || 'Network error',
       });
+      console.error('[ChatStore] sendMessage error:', error.message);
     }
   },
 
-  // Add a message directly (for optimistic updates)
   addMessage: (message: Message) => {
     const currentMessages = get().messages;
     const updatedMessages = [...currentMessages, message];
-
     set({ messages: updatedMessages });
-
     messagesStorage.setMessages(updatedMessages).catch(console.error);
   },
 
-  // Delete a message — backend expects array of IDs
   deleteMessage: async (messageId: number) => {
     const token = await authStorage.getToken();
 
@@ -127,13 +133,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       const response = await messagesApi.deleteMessages(token, [messageId]);
 
       if (response.success) {
-        const currentMessages = get().messages;
-        const updatedMessages = currentMessages.filter(
+        const updatedMessages = get().messages.filter(
           msg => msg.id !== messageId
         );
-
         await messagesStorage.setMessages(updatedMessages);
-
         set({ messages: updatedMessages, error: null });
       } else {
         set({ error: response.error || 'Failed to delete message' });
@@ -145,17 +148,14 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
-  // Clear all messages
   clearMessages: () => {
     set({ messages: [], error: null });
     messagesStorage.clearMessages().catch(console.error);
   },
 
   setLoading: (loading: boolean) => set({ isLoading: loading }),
-
   setError: (error: string | null) => set({ error }),
 
-  // Load messages from local storage
   loadLocalMessages: async () => {
     try {
       const localMessages = await messagesStorage.getMessages();
@@ -163,7 +163,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         set({ messages: localMessages });
       }
     } catch (error) {
-      console.error('Error loading local messages:', error);
+      console.error('[ChatStore] loadLocalMessages error:', error);
     }
   },
 }));

@@ -1,5 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TouchableOpacity, Alert } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import ChatBubble from '../components/ChatBubble';
 import InputBar from '../components/InputBar';
 import TypingIndicator from '../components/TypingIndicator';
@@ -13,18 +22,24 @@ interface ChatScreenProps {
 
 const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   const flatListRef = useRef<FlatList>(null);
+  const [isSending, setIsSending] = useState(false);
 
-  const { messages, isLoading, fetchMessages, sendMessage, loadLocalMessages } = useChatStore();
-  const { logout, user } = useAuthStore();
+  const { messages, fetchMessages, sendMessage, loadLocalMessages } =
+    useChatStore();
+  const { logout } = useAuthStore();
 
   useEffect(() => {
-    // Load local messages first for instant render, then sync from backend
     loadLocalMessages().then(() => fetchMessages());
   }, []);
 
   const handleSendMessage = async (text: string) => {
-    if (!text.trim() || isLoading) return;
-    await sendMessage(text.trim());
+    if (!text.trim() || isSending) return;
+    setIsSending(true);
+    try {
+      await sendMessage(text.trim());
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleVoicePress = () => {
@@ -34,16 +49,12 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: logout },
+      { text: 'Logout', style: 'destructive', onPress: () => logout() },
     ]);
   };
 
   const renderMessage = ({ item }: { item: Message }) => (
     <ChatBubble message={item} />
-  );
-
-  const renderTypingIndicator = () => (
-    isLoading ? <TypingIndicator visible={isLoading} /> : null
   );
 
   return (
@@ -63,27 +74,28 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
         ref={flatListRef}
         data={messages}
         renderItem={renderMessage}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={item => item.id.toString()}
         style={styles.messageList}
         contentContainerStyle={styles.messageListContent}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-        ListFooterComponent={renderTypingIndicator}
+        onContentSizeChange={() =>
+          flatListRef.current?.scrollToEnd({ animated: true })
+        }
+        ListFooterComponent={
+          isSending ? <TypingIndicator visible={true} /> : null
+        }
       />
 
       <InputBar
         onSend={handleSendMessage}
         onVoicePress={handleVoicePress}
-        disabled={isLoading}
+        disabled={isSending}
       />
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   header: {
     height: 60,
     backgroundColor: '#007AFF',
@@ -100,21 +112,10 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
   },
-  logoutButton: {
-    position: 'absolute',
-    right: 16,
-  },
-  logoutText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    opacity: 0.85,
-  },
-  messageList: {
-    flex: 1,
-  },
-  messageListContent: {
-    paddingVertical: 12,
-  },
+  logoutButton: { position: 'absolute', right: 16 },
+  logoutText: { color: '#FFFFFF', fontSize: 14, opacity: 0.85 },
+  messageList: { flex: 1 },
+  messageListContent: { paddingVertical: 12 },
 });
 
 export default ChatScreen;

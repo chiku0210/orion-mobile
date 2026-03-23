@@ -1,7 +1,7 @@
 /**
  * ORION Mobile App
  * A React Native chat application
- * 
+ *
  * @format
  */
 
@@ -10,16 +10,10 @@ import { StatusBar, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-// Screens
 import { LoginScreen, RegisterScreen, ChatScreen } from './src/screens';
-
-// Store
 import { useAuthStore } from './src/store';
-
-// Constants
 import { COLORS } from './src/utils';
 
-// Type definitions for navigation
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
@@ -28,7 +22,6 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-// Loading screen component
 const LoadingScreen: React.FC = () => (
   <View style={styles.loadingContainer}>
     <ActivityIndicator size="large" color={COLORS.primary} />
@@ -37,8 +30,8 @@ const LoadingScreen: React.FC = () => (
 
 function App(): React.JSX.Element {
   const [isReady, setIsReady] = useState(false);
-  const checkAuth = useAuthStore((state) => state.checkAuth);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const checkAuth = useAuthStore(state => state.checkAuth);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -50,51 +43,37 @@ function App(): React.JSX.Element {
         setIsReady(true);
       }
     };
-
     initializeApp();
-  }, [checkAuth]);
+  }, []);
 
   if (!isReady) {
     return <LoadingScreen />;
   }
 
-  const initialRoute = isAuthenticated ? 'Chat' : 'Login';
-
   return (
     <NavigationContainer>
-      <StatusBar 
-        barStyle="dark-content" 
-        backgroundColor={COLORS.background} 
-      />
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
       <Stack.Navigator
-        initialRouteName={initialRoute}
         screenOptions={{
           headerShown: false,
-          animation: 'slide_from_right',
+          animation: 'fade',
           contentStyle: { backgroundColor: COLORS.background },
         }}
       >
-        <Stack.Screen 
-          name="Login" 
-          component={LoginScreen}
-          options={{
-            animation: 'fade',
-          }}
-        />
-        <Stack.Screen 
-          name="Register" 
-          component={RegisterScreen}
-          options={{
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen 
-          name="Chat" 
-          component={ChatScreen}
-          options={{
-            animation: 'fade',
-          }}
-        />
+        {isAuthenticated ? (
+          // Authenticated stack — only Chat accessible
+          <Stack.Screen name="Chat" component={ChatScreen} />
+        ) : (
+          // Unauthenticated stack — Login + Register
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen
+              name="Register"
+              component={RegisterScreen}
+              options={{ animation: 'slide_from_right' }}
+            />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );
