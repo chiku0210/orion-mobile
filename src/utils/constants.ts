@@ -1,6 +1,6 @@
 export const BASE_URL = __DEV__
   ? 'http://10.0.2.2:3000'        // emulator dev
-  : 'https://your-prod-domain.com'; // swap this when deploying
+  : 'http://orion-api.repwise.in/';
 
 export const API_TIMEOUT = 30000; // 30 seconds
 
