@@ -1,5 +1,7 @@
-// API Configuration
-export const BASE_URL = 'https://api.orion.example.com/v1';
+export const BASE_URL = __DEV__
+  ? 'http://10.0.2.2:3000'        // emulator dev
+  : 'https://your-prod-domain.com'; // swap this when deploying
+
 export const API_TIMEOUT = 30000; // 30 seconds
 
 // Storage Keys
@@ -17,32 +19,32 @@ export const COLORS = {
   primary: '#007AFF',
   primaryDark: '#0056CC',
   primaryLight: '#B4D7FF',
-  
+
   // Backgrounds
   background: '#FFFFFF',
   backgroundSecondary: '#F2F2F7',
   backgroundTertiary: '#E9E9EB',
-  
+
   // Text
   textPrimary: '#000000',
   textSecondary: '#666666',
   textTertiary: '#999999',
   textInverse: '#FFFFFF',
-  
+
   // Status
   success: '#34C759',
   warning: '#FF9500',
   error: '#FF3B30',
   info: '#5AC8FA',
-  
+
   // Borders
   border: '#E0E0E0',
   borderDark: '#C0C0C0',
-  
+
   // Chat
   userBubble: '#007AFF',
   assistantBubble: '#E9E9EB',
-  
+
   // Misc
   transparent: 'transparent',
   overlay: 'rgba(0, 0, 0, 0.5)',

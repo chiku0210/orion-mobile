@@ -1,12 +1,16 @@
 import { create } from 'zustand';
 import { User, AuthState } from '../types';
 import { authStorage } from '../services/storage';
-import { authApi } from '../services/api';
+import { authApi, setUnauthorizedHandler } from '../services/api';
 
 interface AuthStore extends AuthState {
   // Actions
   login: (email: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
+  register: (
+    username: string,
+    email: string,
+    password: string
+  ) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   setUser: (user: User | null) => void;
@@ -27,17 +31,17 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   // Login action
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
-    
+
     try {
       const response = await authApi.login(email, password);
-      
+
       if (response.success && response.data) {
         const { user, token } = response.data;
-        
+
         // Save to storage
         await authStorage.setToken(token);
         await authStorage.setUser(user);
-        
+
         set({
           user,
           token,
@@ -62,17 +66,17 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   // Register action
   register: async (username: string, email: string, password: string) => {
     set({ isLoading: true, error: null });
-    
+
     try {
       const response = await authApi.register(username, email, password);
-      
+
       if (response.success && response.data) {
         const { user, token } = response.data;
-        
+
         // Save to storage
         await authStorage.setToken(token);
         await authStorage.setUser(user);
-        
+
         set({
           user,
           token,
@@ -97,7 +101,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   // Logout action
   logout: async () => {
     set({ isLoading: true });
-    
+
     try {
       const currentToken = get().token;
       if (currentToken) {
@@ -109,7 +113,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     } finally {
       // Clear storage and state
       await authStorage.clearAuth();
-      
+
       set({
         user: null,
         token: null,
@@ -123,11 +127,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   // Check auth status on app start
   checkAuth: async () => {
     set({ isLoading: true });
-    
+
     try {
       const token = await authStorage.getToken();
       const user = await authStorage.getUser();
-      
+
       if (token && user) {
         set({
           user,
@@ -169,5 +173,17 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ error: null });
   },
 }));
+
+// Register 401 auto-logout handler — called by api.ts when token expires
+setUnauthorizedHandler(async () => {
+  await authStorage.clearAuth();
+  useAuthStore.setState({
+    user: null,
+    token: null,
+    isAuthenticated: false,
+    isLoading: false,
+    error: 'Session expired. Please log in again.',
+  });
+});
 
 export default useAuthStore;

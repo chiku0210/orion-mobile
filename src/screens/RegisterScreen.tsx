@@ -9,7 +9,9 @@ import {
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
+import { useAuthStore } from '../store/authStore';
 
 interface RegisterScreenProps {
   navigation?: any;
@@ -22,10 +24,16 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+
+  const { register, isLoading, error, clearError } = useAuthStore();
 
   const handleRegister = async () => {
-    if (!username.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+    if (
+      !username.trim() ||
+      !email.trim() ||
+      !password.trim() ||
+      !confirmPassword.trim()
+    ) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -46,20 +54,19 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       return;
     }
 
-    setIsLoading(true);
+    clearError();
+    await register(username.trim(), email.trim(), password.trim());
 
-    // Simulate registration API call
-    setTimeout(() => {
-      setIsLoading(false);
-      Alert.alert('Success', 'Account created successfully!', [
-        { text: 'OK', onPress: () => navigation?.replace('Chat') },
+    // authStore sets isAuthenticated — App.tsx navigator switches to Chat automatically
+  };
+
+  React.useEffect(() => {
+    if (error) {
+      Alert.alert('Registration Failed', error, [
+        { text: 'OK', onPress: clearError },
       ]);
-    }, 1500);
-  };
-
-  const handleLogin = () => {
-    navigation?.goBack();
-  };
+    }
+  }, [error]);
 
   return (
     <KeyboardAvoidingView
@@ -137,24 +144,31 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               style={styles.eyeButton}
               onPress={() => setShowConfirmPassword(!showConfirmPassword)}
             >
-              <Text style={styles.eyeIcon}>{showConfirmPassword ? '🙈' : '👁️'}</Text>
+              <Text style={styles.eyeIcon}>
+                {showConfirmPassword ? '🙈' : '👁️'}
+              </Text>
             </TouchableOpacity>
           </View>
 
           <TouchableOpacity
-            style={[styles.registerButton, isLoading && styles.registerButtonDisabled]}
+            style={[
+              styles.registerButton,
+              isLoading && styles.registerButtonDisabled,
+            ]}
             onPress={handleRegister}
             disabled={isLoading}
           >
-            <Text style={styles.registerButtonText}>
-              {isLoading ? 'Creating Account...' : 'Sign Up'}
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.registerButtonText}>Sign Up</Text>
+            )}
           </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Already have an account?</Text>
-          <TouchableOpacity onPress={handleLogin}>
+          <TouchableOpacity onPress={() => navigation?.goBack()}>
             <Text style={styles.loginText}> Sign In</Text>
           </TouchableOpacity>
         </View>
@@ -164,34 +178,22 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 40,
     paddingBottom: 40,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
+  header: { alignItems: 'center', marginBottom: 32 },
   logo: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#007AFF',
     letterSpacing: 4,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666666',
-    marginTop: 8,
-  },
-  form: {
-    width: '100%',
-  },
+  subtitle: { fontSize: 16, color: '#666666', marginTop: 8 },
+  form: { width: '100%' },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -200,22 +202,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 16,
   },
-  inputIcon: {
-    fontSize: 18,
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    height: 50,
-    fontSize: 16,
-    color: '#000000',
-  },
-  eyeButton: {
-    padding: 4,
-  },
-  eyeIcon: {
-    fontSize: 18,
-  },
+  inputIcon: { fontSize: 18, marginRight: 12 },
+  input: { flex: 1, height: 50, fontSize: 16, color: '#000000' },
+  eyeButton: { padding: 4 },
+  eyeIcon: { fontSize: 18 },
   registerButton: {
     backgroundColor: '#007AFF',
     borderRadius: 12,
@@ -224,28 +214,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
-  registerButtonDisabled: {
-    backgroundColor: '#B4D7FF',
-  },
-  registerButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  footerText: {
-    color: '#666666',
-    fontSize: 14,
-  },
-  loginText: {
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  registerButtonDisabled: { backgroundColor: '#B4D7FF' },
+  registerButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
+  footerText: { color: '#666666', fontSize: 14 },
+  loginText: { color: '#007AFF', fontSize: 14, fontWeight: '600' },
 });
 
 export default RegisterScreen;

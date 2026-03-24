@@ -9,18 +9,48 @@ interface ChatBubbleProps {
 const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
   const isUser = message.role === 'user';
 
+  // Handle both frontend (camelCase) and backend (snake_case) field names
+  const messageType = message.messageType || message.message_type || 'text';
+  const timestamp = message.createdAt || message.created_at;
+  const timeDisplay = timestamp ? new Date(timestamp).toLocaleTimeString() : '';
+
   return (
-    <View style={[styles.container, isUser ? styles.userContainer : styles.assistantContainer]}>
-      <View style={[styles.bubble, isUser ? styles.userBubble : styles.assistantBubble]}>
-        <Text style={[styles.content, isUser ? styles.userContent : styles.assistantContent]}>
+    <View
+      style={[
+        styles.container,
+        isUser ? styles.userContainer : styles.assistantContainer,
+      ]}
+    >
+      <View
+        style={[
+          styles.bubble,
+          isUser ? styles.userBubble : styles.assistantBubble,
+        ]}
+      >
+        <Text
+          style={[
+            styles.content,
+            isUser ? styles.userContent : styles.assistantContent,
+          ]}
+        >
           {message.content}
         </Text>
         <View style={styles.metaContainer}>
-          <Text style={[styles.messageType, isUser ? styles.userMeta : styles.assistantMeta]}>
-            {message.messageType}
+          <Text
+            style={[
+              styles.messageType,
+              isUser ? styles.userMeta : styles.assistantMeta,
+            ]}
+          >
+            {messageType.toUpperCase()}
           </Text>
-          <Text style={[styles.timestamp, isUser ? styles.userMeta : styles.assistantMeta]}>
-            {new Date(message.createdAt).toLocaleTimeString()}
+          <Text
+            style={[
+              styles.timestamp,
+              isUser ? styles.userMeta : styles.assistantMeta,
+            ]}
+          >
+            {timeDisplay}
           </Text>
         </View>
       </View>
