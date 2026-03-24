@@ -1,7 +1,7 @@
-import Config from 'react-native-config';
+export const BASE_URL = __DEV__
+  ? 'http://10.0.2.2:3000'        // emulator dev
+  : 'https://your-prod-domain.com'; // swap this when deploying
 
-// Falls back to emulator address if env var not set
-export const BASE_URL = Config.API_BASE_URL || 'http://10.0.2.2:3000';
 export const API_TIMEOUT = 30000; // 30 seconds
 
 // Storage Keys
