@@ -1,5 +1,6 @@
 import { User, Message } from '../types';
 import { BASE_URL, API_TIMEOUT } from '../utils/constants';
+import { authStorage } from './storage';
 
 // Response types
 interface ApiResponse<T> {
@@ -32,6 +33,12 @@ interface SendMessageResponse {
   };
 }
 
+// Logout callback — set by authStore on init to avoid circular imports
+let onUnauthorized: (() => void) | null = null;
+export const setUnauthorizedHandler = (handler: () => void) => {
+  onUnauthorized = handler;
+};
+
 // Helper function for making API requests
 async function fetchApi<T>(
   endpoint: string,
@@ -52,13 +59,17 @@ async function fetchApi<T>(
 
     clearTimeout(timeoutId);
 
+    // Token expired or invalid — trigger auto-logout
+    if (response.status === 401 || response.status === 403) {
+      await authStorage.clearAuth();
+      onUnauthorized?.();
+      return { success: false, error: 'Session expired. Please log in again.' };
+    }
+
     const data = await response.json();
 
     if (!response.ok) {
-      return {
-        success: false,
-        error: data.error || 'An error occurred',  // backend returns { error: "..." }
-      };
+      return { success: false, error: data.error || 'An error occurred' };
     }
 
     return { success: true, data };
@@ -72,7 +83,10 @@ async function fetchApi<T>(
 
 // Auth API — paths: /api/auth/*
 export const authApi = {
-  login: async (email: string, password: string): Promise<ApiResponse<AuthResponse>> => {
+  login: async (
+    email: string,
+    password: string
+  ): Promise<ApiResponse<AuthResponse>> => {
     return fetchApi<AuthResponse>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
@@ -137,7 +151,6 @@ export const messagesApi = {
   },
 };
 
-// User API — not implemented in backend yet, placeholder
 export const userApi = {
   getProfile: async (token: string): Promise<ApiResponse<User>> => {
     return fetchApi<User>('/api/user/profile', {
@@ -146,8 +159,4 @@ export const userApi = {
   },
 };
 
-export default {
-  auth: authApi,
-  messages: messagesApi,
-  user: userApi,
-};
+export default { auth: authApi, messages: messagesApi, user: userApi };

@@ -1,7 +1,7 @@
-// API Configuration
-// Android emulator → 10.0.2.2, physical device → your LAN IP e.g. 192.168.1.x
-export const BASE_URL = 'http://10.0.2.2:3000';
+import Config from 'react-native-config';
 
+// Falls back to emulator address if env var not set
+export const BASE_URL = Config.API_BASE_URL || 'http://10.0.2.2:3000';
 export const API_TIMEOUT = 30000; // 30 seconds
 
 // Storage Keys
@@ -19,32 +19,32 @@ export const COLORS = {
   primary: '#007AFF',
   primaryDark: '#0056CC',
   primaryLight: '#B4D7FF',
-  
+
   // Backgrounds
   background: '#FFFFFF',
   backgroundSecondary: '#F2F2F7',
   backgroundTertiary: '#E9E9EB',
-  
+
   // Text
   textPrimary: '#000000',
   textSecondary: '#666666',
   textTertiary: '#999999',
   textInverse: '#FFFFFF',
-  
+
   // Status
   success: '#34C759',
   warning: '#FF9500',
   error: '#FF3B30',
   info: '#5AC8FA',
-  
+
   // Borders
   border: '#E0E0E0',
   borderDark: '#C0C0C0',
-  
+
   // Chat
   userBubble: '#007AFF',
   assistantBubble: '#E9E9EB',
-  
+
   // Misc
   transparent: 'transparent',
   overlay: 'rgba(0, 0, 0, 0.5)',
