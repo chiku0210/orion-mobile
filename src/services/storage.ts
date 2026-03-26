@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { User } from '../types';
 
 // Storage keys
 export const STORAGE_KEYS = {
@@ -84,18 +85,22 @@ export const storage = {
   },
 
   // Multi-get (get multiple values at once)
-  multiGet: async (keys: readonly string[]): Promise<[string, string | null][]> => {
+  multiGet: async (
+    keys: readonly string[]
+  ): Promise<[string, string | null][]> => {
     try {
       const result = await AsyncStorage.multiGet([...keys]);
       return result as [string, string | null][];
     } catch (error) {
       console.error('Error multi-get:', error);
-      return keys.map((key) => [key, null]);
+      return keys.map(key => [key, null]);
     }
   },
 
   // Multi-set (set multiple values at once)
-  multiSet: async (keyValuePairs: readonly (readonly [string, string])[]): Promise<void> => {
+  multiSet: async (
+    keyValuePairs: readonly (readonly [string, string])[]
+  ): Promise<void> => {
     try {
       await AsyncStorage.multiSet([...keyValuePairs]);
     } catch (error) {
@@ -128,20 +133,22 @@ export const authStorage = {
   },
 
   // Save user data
-  setUser: async (user: any): Promise<void> => {
+  setUser: async (user: User): Promise<void> => {
     await storage.setObject(STORAGE_KEYS.USER_DATA, user);
   },
 
   // Get user data
-  getUser: async (): Promise<any | null> => {
+  getUser: async (): Promise<User | null> => {
     return await storage.getObject(STORAGE_KEYS.USER_DATA);
   },
 
   // Clear all auth data
   clearAuth: async (): Promise<void> => {
-    await storage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-    await storage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-    await storage.removeItem(STORAGE_KEYS.USER_DATA);
+    await AsyncStorage.multiRemove([
+      STORAGE_KEYS.AUTH_TOKEN,
+      STORAGE_KEYS.REFRESH_TOKEN,
+      STORAGE_KEYS.USER_DATA,
+    ]);
   },
 
   // Check if user is logged in

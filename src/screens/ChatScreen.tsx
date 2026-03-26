@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   FlatList,
@@ -21,7 +21,6 @@ interface ChatScreenProps {
 }
 
 const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
-  const flatListRef = useRef<FlatList>(null);
   const [isSending, setIsSending] = useState(false);
 
   const { messages, fetchMessages, sendMessage, loadLocalMessages } =
@@ -71,16 +70,13 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
       </View>
 
       <FlatList
-        ref={flatListRef}
+        inverted
         data={messages}
         renderItem={renderMessage}
         keyExtractor={item => item.id.toString()}
         style={styles.messageList}
         contentContainerStyle={styles.messageListContent}
-        onContentSizeChange={() =>
-          flatListRef.current?.scrollToEnd({ animated: true })
-        }
-        ListFooterComponent={
+        ListHeaderComponent={
           isSending ? <TypingIndicator visible={true} /> : null
         }
       />

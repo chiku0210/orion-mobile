@@ -72,7 +72,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     const currentMessages = get().messages;
     set({
-      messages: [...currentMessages, optimisticUserMsg],
+      messages: [optimisticUserMsg, ...currentMessages],
       isLoading: true,
       error: null,
     });
@@ -89,9 +89,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
         // Replace optimistic list + append real assistant response
         const withAssistant = [
-          ...currentMessages,
-          optimisticUserMsg,
           assistantMessage,
+          optimisticUserMsg,
+          ...currentMessages,
         ];
         await messagesStorage.setMessages(withAssistant);
         set({ messages: withAssistant, isLoading: false, error: null });
@@ -116,7 +116,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   addMessage: (message: Message) => {
     const currentMessages = get().messages;
-    const updatedMessages = [...currentMessages, message];
+    const updatedMessages = [message, ...currentMessages];
     set({ messages: updatedMessages });
     messagesStorage.setMessages(updatedMessages).catch(console.error);
   },
