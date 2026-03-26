@@ -3,9 +3,11 @@ import { Message, ChatState } from '../types';
 import { messagesApi } from '../services/api';
 import { messagesStorage } from '../services/storage';
 import { authStorage } from '../services/storage';
+import { BASE_URL } from '../utils/constants';
 
 interface ChatStore extends ChatState {
   fetchMessages: (page?: number, limit?: number) => Promise<void>;
+  loadMoreMessages: () => Promise<void>;
   sendMessage: (
     content: string,
     messageType?: 'text' | 'voice'
@@ -16,18 +18,24 @@ interface ChatStore extends ChatState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   loadLocalMessages: () => Promise<void>;
+  hasMore: boolean;
+  isFetchingMore: boolean;
+  currentOffset: number;
 }
 
 export const useChatStore = create<ChatStore>((set, get) => ({
   messages: [],
   isLoading: false,
   error: null,
+  hasMore: true,
+  isFetchingMore: false,
+  currentOffset: 0,
 
   fetchMessages: async (page: number = 1, limit: number = 50) => {
     const token = await authStorage.getToken();
 
     if (!token) {
-      set({ isLoading: false, error: null }); // not authenticated yet — silent, don't block UI
+      set({ isLoading: false, error: null });
       return;
     }
 
@@ -38,15 +46,55 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
       if (response.success && response.data) {
         const messages = (response.data as any).messages as Message[];
+        const pagination = (response.data as any).pagination;
         await messagesStorage.setMessages(messages);
-        set({ messages, isLoading: false, error: null });
+        set({
+          messages,
+          isLoading: false,
+          error: null,
+          hasMore: pagination.hasMore,
+          currentOffset: messages.length,
+        });
       } else {
-        // Don't block UI on fetch failure — just clear loading
         set({ isLoading: false, error: null });
       }
     } catch (error: any) {
-      set({ isLoading: false, error: null }); // silent fail — don't block the input bar
+      set({ isLoading: false, error: null });
       console.error('[ChatStore] fetchMessages error:', error.message);
+    }
+  },
+
+  loadMoreMessages: async () => {
+    const { isFetchingMore, hasMore, messages, currentOffset } = get();
+    if (isFetchingMore || !hasMore) return;
+
+    const token = await authStorage.getToken();
+    if (!token) return;
+
+    set({ isFetchingMore: true });
+    const limit = 50;
+
+    try {
+      const res = await fetch(
+        `${BASE_URL}/api/chat/history?limit=${limit}&offset=${currentOffset}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await res.json();
+      const older = data.messages as Message[];
+      const pagination = data.pagination;
+
+      // Older messages go to END of array — inverted FlatList renders end at top
+      const merged = [...messages, ...older];
+      await messagesStorage.setMessages(merged);
+      set({
+        messages: merged,
+        isFetchingMore: false,
+        hasMore: pagination.hasMore,
+        currentOffset: currentOffset + older.length,
+      });
+    } catch (err: any) {
+      set({ isFetchingMore: false });
+      console.error('[ChatStore] loadMoreMessages error:', err.message);
     }
   },
 
@@ -61,9 +109,8 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       return;
     }
 
-    // Add user message immediately — don't wait for API
     const optimisticUserMsg: Message = {
-      id: Date.now(), // temp ID
+      id: Date.now(),
       role: 'user',
       content,
       messageType,
@@ -72,7 +119,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
     const currentMessages = get().messages;
     set({
-      messages: [...currentMessages, optimisticUserMsg],
+      messages: [optimisticUserMsg, ...currentMessages],
       isLoading: true,
       error: null,
     });
@@ -87,16 +134,20 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       if (response.success && response.data) {
         const assistantMessage = (response.data as any).message as Message;
 
-        // Replace optimistic list + append real assistant response
         const withAssistant = [
-          ...currentMessages,
-          optimisticUserMsg,
           assistantMessage,
+          optimisticUserMsg,
+          ...currentMessages,
         ];
         await messagesStorage.setMessages(withAssistant);
-        set({ messages: withAssistant, isLoading: false, error: null });
+        // New messages sent — bump offset by 2 (user + assistant)
+        set({
+          messages: withAssistant,
+          isLoading: false,
+          error: null,
+          currentOffset: get().currentOffset + 2,
+        });
       } else {
-        // Rollback optimistic message on failure
         set({
           messages: currentMessages,
           isLoading: false,
@@ -104,7 +155,6 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         });
       }
     } catch (error: any) {
-      // Rollback on network error
       set({
         messages: currentMessages,
         isLoading: false,
@@ -116,7 +166,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   addMessage: (message: Message) => {
     const currentMessages = get().messages;
-    const updatedMessages = [...currentMessages, message];
+    const updatedMessages = [message, ...currentMessages];
     set({ messages: updatedMessages });
     messagesStorage.setMessages(updatedMessages).catch(console.error);
   },
@@ -149,7 +199,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   clearMessages: () => {
-    set({ messages: [], error: null });
+    set({ messages: [], error: null, hasMore: true, currentOffset: 0 });
     messagesStorage.clearMessages().catch(console.error);
   },
 
@@ -160,7 +210,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     try {
       const localMessages = await messagesStorage.getMessages();
       if (localMessages.length > 0) {
-        set({ messages: localMessages });
+        set({ messages: localMessages, currentOffset: localMessages.length });
       }
     } catch (error) {
       console.error('[ChatStore] loadLocalMessages error:', error);
