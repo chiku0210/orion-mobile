@@ -8,6 +8,7 @@ import {
   Text,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import ChatBubble from '../components/ChatBubble';
 import InputBar from '../components/InputBar';
@@ -23,8 +24,15 @@ interface ChatScreenProps {
 const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
   const [isSending, setIsSending] = useState(false);
 
-  const { messages, fetchMessages, sendMessage, loadLocalMessages } =
-    useChatStore();
+  const {
+    messages,
+    fetchMessages,
+    sendMessage,
+    loadLocalMessages,
+    loadMoreMessages,
+    isFetchingMore,
+    hasMore,
+  } = useChatStore();
   const { logout } = useAuthStore();
 
   useEffect(() => {
@@ -76,6 +84,13 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ navigation }) => {
         keyExtractor={item => item.id.toString()}
         style={styles.messageList}
         contentContainerStyle={styles.messageListContent}
+        onEndReached={() => { if (hasMore) loadMoreMessages(); }}
+        onEndReachedThreshold={0.2}
+        ListFooterComponent={
+          isFetchingMore
+            ? <ActivityIndicator color="#007AFF" style={styles.loadMoreSpinner} />
+            : null
+        }
         ListHeaderComponent={
           isSending ? <TypingIndicator visible={true} /> : null
         }
@@ -112,6 +127,7 @@ const styles = StyleSheet.create({
   logoutText: { color: '#FFFFFF', fontSize: 14, opacity: 0.85 },
   messageList: { flex: 1 },
   messageListContent: { paddingVertical: 12 },
+  loadMoreSpinner: { paddingVertical: 12 },
 });
 
 export default ChatScreen;
