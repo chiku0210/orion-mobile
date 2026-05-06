@@ -1,4 +1,4 @@
-import { COLORS, FONT_SIZES, SPACING } from './constants';
+import { COLORS } from './constants';
 
 // Date/Time formatting helpers
 export const formatTime = (dateString: string): string => {
@@ -13,11 +13,11 @@ export const formatDate = (dateString: string): string => {
 
 export const formatDateTime = (dateString: string): string => {
   const date = new Date(dateString);
-  return date.toLocaleString([], { 
-    month: 'short', 
-    day: 'numeric', 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 };
 
@@ -60,12 +60,12 @@ export const getRelativeTime = (dateString: string): string => {
 
 // String helpers
 export const truncate = (str: string, maxLength: number): string => {
-  if (str.length <= maxLength) return str;
+  if (str.length <= maxLength) {return str;}
   return str.substring(0, maxLength - 3) + '...';
 };
 
 export const capitalizeFirst = (str: string): string => {
-  if (!str) return '';
+  if (!str) {return '';}
   return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
@@ -104,12 +104,12 @@ export const getPasswordStrength = (password: string): {
 } => {
   let score = 0;
 
-  if (password.length >= 6) score++;
-  if (password.length >= 10) score++;
-  if (/[a-z]/.test(password)) score++;
-  if (/[A-Z]/.test(password)) score++;
-  if (/[0-9]/.test(password)) score++;
-  if (/[^a-zA-Z0-9]/.test(password)) score++;
+  if (password.length >= 6) {score++;}
+  if (password.length >= 10) {score++;}
+  if (/[a-z]/.test(password)) {score++;}
+  if (/[A-Z]/.test(password)) {score++;}
+  if (/[0-9]/.test(password)) {score++;}
+  if (/[^a-zA-Z0-9]/.test(password)) {score++;}
 
   if (score <= 2) {
     return { score, label: 'Weak', color: COLORS.error };
@@ -138,7 +138,7 @@ export const debounce = <T extends (...args: any[]) => any>(
   let timeout: NodeJS.Timeout | null = null;
 
   return (...args: Parameters<T>) => {
-    if (timeout) clearTimeout(timeout);
+    if (timeout) {clearTimeout(timeout);}
     timeout = setTimeout(() => func(...args), wait);
   };
 };
@@ -166,8 +166,8 @@ export const deepClone = <T>(obj: T): T => {
 
 // Check if object is empty
 export const isEmpty = (obj: any): boolean => {
-  if (obj == null) return true;
-  if (Array.isArray(obj) || typeof obj === 'string') return obj.length === 0;
+  if (obj == null) {return true;}
+  if (Array.isArray(obj) || typeof obj === 'string') {return obj.length === 0;}
   return Object.keys(obj).length === 0;
 };
 
@@ -218,7 +218,7 @@ export const groupMessagesByDate = <T extends { createdAt: string }>(
 
 // Storage size formatter
 export const formatBytes = (bytes: number, decimals: number = 2): string => {
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) {return '0 Bytes';}
 
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;

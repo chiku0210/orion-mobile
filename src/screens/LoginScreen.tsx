@@ -46,7 +46,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     if (error) {
       Alert.alert('Login Failed', error, [{ text: 'OK', onPress: clearError }]);
     }
-  }, [error]);
+  }, [error, clearError]);
 
   return (
     <KeyboardAvoidingView

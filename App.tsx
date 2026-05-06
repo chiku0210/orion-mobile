@@ -10,7 +10,7 @@ import { StatusBar, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import { LoginScreen, RegisterScreen, ChatScreen } from './src/screens';
+import { LoginScreen, RegisterScreen, ChatScreen, SettingsScreen } from './src/screens';
 import { useAuthStore } from './src/store';
 import { COLORS } from './src/utils';
 
@@ -18,6 +18,7 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   Chat: undefined;
+  Settings: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -44,7 +45,7 @@ function App(): React.JSX.Element {
       }
     };
     initializeApp();
-  }, []);
+  }, [checkAuth]);
 
   if (!isReady) {
     return <LoadingScreen />;
@@ -61,8 +62,15 @@ function App(): React.JSX.Element {
         }}
       >
         {isAuthenticated ? (
-          // Authenticated stack — only Chat accessible
-          <Stack.Screen name="Chat" component={ChatScreen} />
+          // Authenticated stack
+          <>
+            <Stack.Screen name="Chat" component={ChatScreen} />
+            <Stack.Screen
+              name="Settings"
+              component={SettingsScreen}
+              options={{ headerShown: false, animation: 'slide_from_bottom' }}
+            />
+          </>
         ) : (
           // Unauthenticated stack — Login + Register
           <>

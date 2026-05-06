@@ -13,7 +13,7 @@ const TypingIndicator: React.FC<TypingIndicatorProps> = ({ visible = true }) => 
   ]).current;
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {return;}
 
     const animations = animatedValues.map((anim, index) => {
       return Animated.loop(
@@ -41,7 +41,7 @@ const TypingIndicator: React.FC<TypingIndicatorProps> = ({ visible = true }) => 
     };
   }, [visible, animatedValues]);
 
-  if (!visible) return null;
+  if (!visible) {return null;}
 
   return (
     <View style={styles.container}>

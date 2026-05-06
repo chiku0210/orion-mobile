@@ -1,5 +1,5 @@
 export const BASE_URL = __DEV__
-  ? 'http://10.0.2.2:3000' // emulator dev
+  ? 'http://192.168.10.5:3002' // machine IP for physical device
   : 'https://orion-api.repwise.in/';
 
 export const API_TIMEOUT = 30000; // 30 seconds

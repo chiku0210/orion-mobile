@@ -1,13 +1,21 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, Keyboard, Text } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, Keyboard, Text, ActivityIndicator } from 'react-native';
 
 interface InputBarProps {
   onSend: (message: string) => void;
   onVoicePress?: () => void;
   disabled?: boolean;
+  isRecording?: boolean;
+  isProcessing?: boolean;
 }
 
-const InputBar: React.FC<InputBarProps> = ({ onSend, onVoicePress, disabled = false }) => {
+const InputBar: React.FC<InputBarProps> = ({ 
+  onSend, 
+  onVoicePress, 
+  disabled = false,
+  isRecording = false,
+  isProcessing = false
+}) => {
   const [text, setText] = useState('');
 
   const handleSend = () => {
@@ -35,11 +43,25 @@ const InputBar: React.FC<InputBarProps> = ({ onSend, onVoicePress, disabled = fa
       <View style={styles.buttonContainer}>
         {onVoicePress && (
           <TouchableOpacity
-            style={[styles.iconButton, disabled && styles.disabledButton]}
+            style={[
+              styles.iconButton, 
+              (disabled || isProcessing) && styles.disabledButton,
+              isRecording && styles.recordingButton
+            ]}
             onPress={onVoicePress}
-            disabled={disabled}
+            disabled={disabled || isProcessing}
           >
-            <Text style={[styles.iconText, disabled && styles.disabledIconText]}>🎤</Text>
+            {isProcessing ? (
+              <ActivityIndicator size="small" color="#007AFF" />
+            ) : (
+              <Text style={[
+                styles.iconText, 
+                disabled && styles.disabledIconText,
+                isRecording && styles.recordingIconText
+              ]}>
+                {isRecording ? '🔴' : '🎤'}
+              </Text>
+            )}
           </TouchableOpacity>
         )}
         <TouchableOpacity
@@ -111,6 +133,13 @@ const styles = StyleSheet.create({
   },
   disabledSendIcon: {
     color: '#999999',
+  },
+  recordingButton: {
+    backgroundColor: '#FF3B3015',
+    borderRadius: 20,
+  },
+  recordingIconText: {
+    color: '#FF3B30',
   },
 });
 

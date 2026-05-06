@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { User, Message } from '../types';
 import { BASE_URL, API_TIMEOUT } from '../utils/constants';
 import { authStorage } from './storage';
@@ -126,6 +127,18 @@ export const messagesApi = {
     );
   },
 
+  searchMessages: async (
+    token: string,
+    query: string
+  ): Promise<ApiResponse<{ messages: Message[] }>> => {
+    return fetchApi<{ messages: Message[] }>(
+      `/api/chat/search?q=${encodeURIComponent(query)}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+  },
+
   sendMessage: async (
     token: string,
     content: string,
@@ -135,7 +148,79 @@ export const messagesApi = {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       // Backend expects { text, type } not { content, messageType }
-      body: JSON.stringify({ text: content, type: messageType }),
+      body: JSON.stringify({ text: content, type: messageType, stream: false }),
+    });
+  },
+
+  streamMessage: async (
+    token: string,
+    content: string,
+    onToken: (token: string) => void,
+    onDone: (data: any) => void,
+    onError: (error: string) => void,
+    messageType: 'text' | 'voice' = 'text'
+  ): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${BASE_URL}/api/chat/send`);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+      let lastIndex = 0;
+
+      xhr.onreadystatechange = () => {
+        // readyState 3: Loading (partial data received)
+        // readyState 4: Done
+        if (xhr.readyState === 3 || xhr.readyState === 4) {
+          const newData = xhr.responseText.substring(lastIndex);
+          const lines = newData.split('\n');
+          
+          // Save the last potentially incomplete line if we're still loading
+          if (xhr.readyState === 3) {
+            const lastLine = lines.pop() || '';
+            lastIndex = xhr.responseText.length - lastLine.length;
+          } else {
+            lastIndex = xhr.responseText.length;
+          }
+
+          for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (trimmedLine.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(trimmedLine.slice(6));
+                if (data.token) {
+                  onToken(data.token);
+                }
+                if (data.done) {
+                  onDone(data);
+                }
+                if (data.error) {
+                  onError(data.error);
+                }
+              } catch (e) {
+                // Partial JSON, ignore until next chunk
+              }
+            }
+          }
+        }
+
+        if (xhr.readyState === 4) {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            const errorMsg = `Server error: ${xhr.status}`;
+            onError(errorMsg);
+            reject(new Error(errorMsg));
+          }
+        }
+      };
+
+      xhr.onerror = () => {
+        onError('Network error');
+        reject(new Error('Network error'));
+      };
+
+      xhr.send(JSON.stringify({ text: content, type: messageType, stream: true }));
     });
   },
 
@@ -148,6 +233,54 @@ export const messagesApi = {
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify({ messageIds }),
     });
+  },
+
+  transcribe: async (
+    token: string,
+    audioUri: string
+  ): Promise<ApiResponse<{ text: string }>> => {
+    try {
+      const formData = new FormData();
+      
+      // Sanitize the URI:
+      // 1. Remove any existing file:// or file:/ prefixes
+      // 2. Prepend exactly file:/// for a proper absolute path URI
+      let cleanUri = audioUri.replace(/^file:\/+/ , '');
+      if (!cleanUri.startsWith('/')) {
+        cleanUri = '/' + cleanUri;
+      }
+      const normalizedUri = `file://${cleanUri}`;
+
+      console.log('[messagesApi] Transcribing normalized URI:', normalizedUri);
+
+      const fileData = {
+        uri: normalizedUri,
+        type: 'audio/mp4', // Official MIME type for .m4a
+        name: 'speech.m4a',
+      };
+
+      // @ts-ignore - RN FormData requires this specific object structure
+      formData.append('audio', fileData);
+
+      const response = await fetch(`${BASE_URL}/api/chat/transcribe`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      console.log('[messagesApi] Transcribe status:', response.status);
+      const data = await response.json();
+      if (!response.ok) {
+        console.error('[messagesApi] Transcribe failed:', data.error);
+        return { success: false, error: data.error || 'Transcription failed' };
+      }
+      return { success: true, data };
+    } catch (error: any) {
+      console.error('[messagesApi] Transcribe network error:', error);
+      return { success: false, error: error.message || 'Network error' };
+    }
   },
 };
 

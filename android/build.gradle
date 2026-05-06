@@ -18,4 +18,24 @@ buildscript {
     }
 }
 
+allprojects {
+    configurations.all {
+        resolutionStrategy {
+            force "androidx.core:core:1.12.0"
+            force "androidx.core:core-ktx:1.12.0"
+        }
+    }
+
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "17"
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
 apply plugin: "com.facebook.react.rootproject"

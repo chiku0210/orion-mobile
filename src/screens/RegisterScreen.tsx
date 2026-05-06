@@ -66,7 +66,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         { text: 'OK', onPress: clearError },
       ]);
     }
-  }, [error]);
+  }, [error, clearError]);
 
   return (
     <KeyboardAvoidingView
