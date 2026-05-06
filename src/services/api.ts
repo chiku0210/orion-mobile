@@ -67,7 +67,18 @@ async function fetchApi<T>(
       return { success: false, error: 'Session expired. Please log in again.' };
     }
 
-    const data = await response.json();
+    const contentType = response.headers.get('content-type');
+    let data: any;
+
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      return { 
+        success: false, 
+        error: !response.ok ? `Server error (${response.status}): ${text.substring(0, 100)}` : 'Invalid response format'
+      };
+    }
 
     if (!response.ok) {
       return { success: false, error: data.error || 'An error occurred' };

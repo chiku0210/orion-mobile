@@ -1,6 +1,6 @@
 export const BASE_URL = __DEV__
   ? 'http://192.168.10.5:3002' // machine IP for physical device
-  : 'https://orion-api.repwise.in/';
+  : 'https://orion-api.nielless.com';
 
 export const API_TIMEOUT = 30000; // 30 seconds
 
